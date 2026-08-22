@@ -4,6 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>提示词增强器 · Prompt Enhancer</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon" />
+<script>
+  /* Vercel 访问统计（免构建，部署后于 Vercel 后台开启 Analytics 生效；仅统计访问量，不收集提示词内容） */
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  (function () {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@vercel/analytics@2/dist/script.js';
+    s.defer = true;
+    document.head.appendChild(s);
+  })();
+</script>
 <style>
   :root{
     --bg:#ffffff; --bg-2:#f6f8fa; --bg-3:#eaeef2;
@@ -95,6 +106,16 @@
   <details class="config" id="cfg" open>
     <summary>⚙️ 设置（云端 API / 风格）</summary>
     <div class="grid">
+      <div class="field" style="grid-column:1/-1">
+        <label>服务商预设（自动填充地址与模型，Key 仍需自己填）</label>
+        <select id="preset">
+          <option value="">自定义 / 手动填写</option>
+          <option value="deepseek">DeepSeek（deepseek-chat）</option>
+          <option value="siliconflow">硅基流动（deepseek-ai/DeepSeek-V3）</option>
+          <option value="zhipu">智谱 glm-4-flash（免费）</option>
+          <option value="agnes">AgnesAI agnes-2.5-flash（免费）</option>
+        </select>
+      </div>
       <div class="field">
         <label>云端 Base URL（OpenAI 兼容）</label>
         <input id="cloudUrl" value="https://api.deepseek.com/v1" />
@@ -123,6 +144,9 @@
     <div class="hint" style="margin-top:10px">
       常用：DeepSeek <code>https://api.deepseek.com/v1</code> 模型 <code>deepseek-chat</code>；硅基流动 <code>https://api.siliconflow.cn/v1</code> 模型 <code>deepseek-ai/DeepSeek-V3</code>。
       Key 仅保存在本机浏览器，不会上传到任何服务器。若浏览器报 CORS 错误，请换用支持跨域的服务商，或用本地代理 / 云函数转发。
+    </div>
+    <div class="hint" style="margin-top:6px">
+      免费模型申请：<b>glm-4-flash</b>（智谱）→ <a href="https://open.bigmodel.cn" target="_blank" rel="noopener">open.bigmodel.cn</a> 注册 → 头像 → API Keys → 创建；<b>agnes-2.5-flash</b>（AgnesAI）→ <a href="https://platform.agnes-ai.com" target="_blank" rel="noopener">platform.agnes-ai.com</a> 邮箱注册 → API 密钥 → 创建。两者 Key 均仅显示一次，请立即保存。
     </div>
   </details>
 
@@ -161,6 +185,21 @@ const cfg = {
   temperature: 0.3,
   style: "general",
 };
+
+/* 服务商预设（仅填充地址与模型，Key 仍由用户自填） */
+const PRESETS = {
+  deepseek:   { url: "https://api.deepseek.com/v1",            model: "deepseek-chat" },
+  siliconflow:{ url: "https://api.siliconflow.cn/v1",          model: "deepseek-ai/DeepSeek-V3" },
+  zhipu:      { url: "https://open.bigmodel.cn/api/paas/v4",   model: "glm-4-flash" },
+  agnes:      { url: "https://api.agnes-ai.cn/v1",             model: "agnes-2.5-flash" },
+};
+
+/* HTML 转义，防止历史记录渲染时注入 */
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 
 /* 载入本地保存的设置（Key 仅存本机） */
 (function loadCfg() {
@@ -339,8 +378,8 @@ function renderHistory() {
   box.innerHTML = list.map((h, i) => {
     const d = new Date(h.t);
     const ts = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    const preview = (h.raw || "").replace(/\s+/g, " ").slice(0, 48);
-    return `<div class="hitem" data-i="${i}"><span class="t">${ts}</span><span class="s">${preview || "(空)"}</span><span class="x">${h.model}</span></div>`;
+    const preview = escapeHtml((h.raw || "").replace(/\s+/g, " ").slice(0, 48)) || "(空)";
+    return `<div class="hitem" data-i="${i}"><span class="t">${ts}</span><span class="s">${preview}</span><span class="x">${escapeHtml(h.model)}</span></div>`;
   }).join("");
   box.querySelectorAll(".hitem").forEach((el) => {
     el.addEventListener("click", () => {
@@ -399,6 +438,14 @@ function bind() {
   $("cloudModel").addEventListener("change", (e) => { cfg.cloudModel = e.target.value.trim(); saveCfg(); syncStat(); });
   $("temperature").addEventListener("input", (e) => { cfg.temperature = +e.target.value; $("tempVal").textContent = e.target.value; saveCfg(); });
   $("style").addEventListener("change", (e) => { cfg.style = e.target.value; saveCfg(); });
+  $("preset").addEventListener("change", (e) => {
+    const p = PRESETS[e.target.value];
+    if (!p) return;
+    cfg.cloudUrl = p.url; cfg.cloudModel = p.model;
+    $("cloudUrl").value = p.url; $("cloudModel").value = p.model;
+    saveCfg(); syncStat();
+    setStatus("ok", "已套用预设：" + e.target.selectedOptions[0].text + "（请填写 API Key）。");
+  });
 
   // 回填已保存的设置到表单
   $("cloudUrl").value = cfg.cloudUrl;
