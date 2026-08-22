@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>提示词增强器 · Prompt Enhancer</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg-2:#f6f8fa; --bg-3:#eaeef2;
+    --border:#d0d7de; --border-2:#afb8c1;
+    --text:#1f2328; --text-2:#57606a; --text-3:#8c959f;
+    --accent:#2f6feb; --accent-soft:#dbe7ff;
+    --green:#1a7f37; --green-soft:#dafbe1;
+    --amber:#9a6700; --amber-soft:#fff8c5;
+    --red:#cf222e;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg-2); color:var(--text); font-size:14px; line-height:1.6;
+  }
+  header{background:var(--bg); border-bottom:1px solid var(--border); padding:12px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10;}
+  header .logo{font-weight:600; font-size:16px;}
+  header .tag{font-size:12px; color:var(--text-2); background:var(--bg-3); border:1px solid var(--border); padding:2px 8px; border-radius:999px;}
+  header .spacer{flex:1;}
+  .btn{border:1px solid var(--border); background:var(--bg); color:var(--text); padding:7px 14px; border-radius:var(--radius); cursor:pointer; font-size:13px; transition:.15s;}
+  .btn:hover{border-color:var(--border-2); background:var(--bg-2);}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .btn.primary:hover{background:#1f5fd6;}
+  .btn.ghost{background:transparent;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .wrap{max-width:1280px; margin:0 auto; padding:16px 20px 40px;}
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px;}
+  .config{background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:16px;}
+  .config summary{cursor:pointer; font-weight:600; user-select:none; list-style:none;}
+  .config summary::-webkit-details-marker{display:none;}
+  .config summary::before{content:"▸ "; color:var(--text-3);}
+  details[open] .config summary::before{content:"▾ ";}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:12px;}
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field label{font-size:12px; color:var(--text-2);}
+  .field input, .field select{border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:13px; background:var(--bg); color:var(--text);}
+  .field input:focus, .field select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+  .row{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .hint{font-size:12px; color:var(--text-3);}
+  .hint code{background:var(--bg-3); padding:1px 5px; border-radius:4px; font-size:12px;}
+  .status{font-size:12px; padding:6px 10px; border-radius:8px; display:none; margin-bottom:12px;}
+  .status.ok{display:block; background:var(--green-soft); color:var(--green); border:1px solid #aadfa8;}
+  .status.err{display:block; background:#ffebe9; color:var(--red); border:1px solid #ffc1ba;}
+  .status.warn{display:block; background:var(--amber-soft); color:var(--amber); border:1px solid #ecdca0;}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:860px){ .cols{grid-template-columns:1fr;} }
+  .panel{background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; min-height:360px;}
+  .panel .phead{padding:10px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; font-weight:600;}
+  .panel .phead .badge{font-size:11px; font-weight:500; color:var(--text-2); background:var(--bg-3); padding:2px 8px; border-radius:999px; margin-left:auto;}
+  .panel textarea, .panel .out{
+    flex:1; border:none; resize:none; padding:14px; font-size:13px; line-height:1.7;
+    background:var(--bg); color:var(--text); width:100%; min-height:320px; outline:none; font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  .panel .out{padding:14px; white-space:pre-wrap; overflow:auto;}
+  .actions{display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--border); flex-wrap:wrap;}
+  .history{margin-top:18px;}
+  .history h3{font-size:14px; margin:0 0 8px;}
+  .hlist{display:flex; flex-direction:column; gap:8px;}
+  .hitem{background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; cursor:pointer; display:flex; align-items:center; gap:10px;}
+  .hitem:hover{border-color:var(--border-2);}
+  .hitem .t{font-size:12px; color:var(--text-3); min-width:120px;}
+  .hitem .s{font-size:13px; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
+  .hitem .x{font-size:11px; color:var(--text-3);}
+  .spinner{display:inline-block; width:13px; height:13px; border:2px solid var(--accent-soft); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">⚡ 提示词增强器</span>
+  <span class="tag">云端 API · 即开即用</span>
+  <span class="spacer"></span>
+  <span class="hint" id="modelStat">未填写 Key</span>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <button class="btn primary" id="enhanceBtn">🚀 一键增强</button>
+    <button class="btn" id="iterateBtn" title="基于当前增强版继续优化">🔁 迭代优化</button>
+    <button class="btn" id="copyBtn">📋 复制结果</button>
+    <button class="btn" id="exportBtn">💾 导出 Markdown</button>
+    <button class="btn ghost" id="clearBtn">清空</button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <details class="config" id="cfg" open>
+    <summary>⚙️ 设置（云端 API / 风格）</summary>
+    <div class="grid">
+      <div class="field">
+        <label>云端 Base URL（OpenAI 兼容）</label>
+        <input id="cloudUrl" value="https://api.deepseek.com/v1" />
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input id="cloudKey" type="password" placeholder="sk-..." autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>模型</label>
+        <input id="cloudModel" value="deepseek-chat" />
+      </div>
+      <div class="field">
+        <label>温度 <span id="tempVal">0.3</span></label>
+        <input id="temperature" type="range" min="0" max="1" step="0.05" value="0.3" />
+      </div>
+      <div class="field">
+        <label>增强风格</label>
+        <select id="style">
+          <option value="general">通用（结构化）</option>
+          <option value="rigorous">严谨技术（约束/可验证）</option>
+          <option value="creative">创意发散（多方案）</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint" style="margin-top:10px">
+      常用：DeepSeek <code>https://api.deepseek.com/v1</code> 模型 <code>deepseek-chat</code>；硅基流动 <code>https://api.siliconflow.cn/v1</code> 模型 <code>deepseek-ai/DeepSeek-V3</code>。
+      Key 仅保存在本机浏览器，不会上传到任何服务器。若浏览器报 CORS 错误，请换用支持跨域的服务商，或用本地代理 / 云函数转发。
+    </div>
+  </details>
+
+  <div class="cols">
+    <div class="panel">
+      <div class="phead">原始提示词 <span class="badge" id="rawCount">0 字</span></div>
+      <textarea id="raw" placeholder="在此粘贴或输入粗糙的提示词，例如：&#10;帮我写个自动备份脚本&#10;&#10;支持 {{src}} {{dst}} 变量"></textarea>
+      <div class="actions"><span class="hint">提示：用 {{变量名}} 声明运行时变量，增强后原样保留。</span></div>
+    </div>
+    <div class="panel">
+      <div class="phead">增强后的提示词 <span class="badge" id="outMode">等待</span></div>
+      <div class="out" id="out">—</div>
+      <div class="actions"><button class="btn" id="copyBtn2">📋 复制</button><span class="hint" id="outMeta"></span></div>
+    </div>
+  </div>
+
+  <div class="history">
+    <h3>🕘 历史记录（本机保存）</h3>
+    <div class="hlist" id="hlist"><span class="hint">暂无记录</span></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- 配置与状态 ---------- */
+const $ = (id) => document.getElementById(id);
+const LS_KEY = "prompt_enhancer_history_v1";
+const LS_CFG = "prompt_enhancer_cfg_v1";
+const HISTORY_MAX = 30;
+
+const cfg = {
+  cloudUrl: "https://api.deepseek.com/v1",
+  cloudKey: "",
+  cloudModel: "deepseek-chat",
+  temperature: 0.3,
+  style: "general",
+};
+
+/* 载入本地保存的设置（Key 仅存本机） */
+(function loadCfg() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_CFG) || "{}");
+    Object.assign(cfg, saved);
+  } catch (_) {}
+})();
+function saveCfg() {
+  try { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); } catch (_) {}
+}
+
+/* ---------- 增强 meta-prompt（通用策略，可按需替换为你自己的增强逻辑） ---------- */
+const META = {
+  general: `你是一个专业的提示词工程专家，擅长把粗糙、模糊的用户需求，改写成结构清晰、约束明确、可被 AI 稳定高质量执行的提示词（即"增强提示词"）。
+
+请严格按以下结构重写用户给出的原始提示词：
+
+# 目标
+[用一句话说清用户真正想要什么结果]
+
+# 角色
+[AI 应扮演的角色，如不需要可省略]
+
+# 背景与上下文
+[补充必要的前提、环境、已知约束]
+
+# 任务分解
+1. [步骤一]
+2. [步骤二]
+3. [步骤三]
+
+# 约束条件
+- [硬性约束：格式、长度、语言、不准做的事]
+- [边界条件与异常处理]
+
+# 输出格式
+[明确指定输出结构：表格 / JSON / 分级列表 / 代码块等]
+
+# 示例（可选）
+[给出 输入→输出 范例，帮助模型对齐预期]
+
+要求：
+- 结论先行、直接可用，不要堆砌无关功能（最小改动原则）
+- 保留原始提示词中的变量占位符（如 {{variable}}）原样，不得改名或删减
+- 直接输出重写后的提示词正文，不要解释、不要用代码块包裹
+- 始终用简体中文输出`,
+
+  rigorous: `你是严谨的系统提示词工程师。请把用户的原始提示词重写为一份可执行、可验证的工程级指令。
+
+结构：
+# 目标
+[可验证的成功标准，如何判断"做对了"]
+
+# 输入
+[明确的输入来源、格式、示例]
+
+# 处理规则
+1. [确定性规则，无歧义]
+2. [边界与异常处理：缺失/非法输入怎么办]
+
+# 输出契约
+[字段名、类型、格式，最好给出 JSON Schema 或样例]
+
+# 禁止项
+[明确不能做的事]
+
+要求：
+- 每一条约束都可被自动检查（可验证性优先）
+- 保留 {{变量名}} 原样
+- 不添加用户未要求的功能
+- 直接输出提示词正文，不用代码块包裹，中文输出`,
+
+  creative: `你是有创造力的提示词设计师。请把用户的原始提示词扩展成 3 个差异化更强的版本，激发更丰富、出彩的产出。
+
+请按以下结构输出：
+
+## 版本 A：稳健实用版
+[结构化、可直接用的增强提示词]
+
+## 版本 B：创意发散版
+[更大胆、更具想象力的角度]
+
+## 版本 C：风格化版
+[突出某种语气/人设/表现手法的写法]
+
+要求：
+- 每个版本都保留原始意图与 {{变量名}}
+- 版本之间有明显差异，方便用户取舍
+- 直接输出，不用代码块包裹，中文输出`,
+};
+
+/* ---------- 云端 API 调用（OpenAI 兼容） ---------- */
+async function callCloud(raw, mode) {
+  if (!cfg.cloudKey) throw new Error("未填写 API Key（设置 → 云端 API）");
+  const url = cfg.cloudUrl.replace(/\/+$/, "") + "/chat/completions";
+  const sys = META[cfg.style];
+  const userContent = mode === "iterate"
+    ? `这是已经过一轮增强的提示词，请在此基础上进一步优化，使其更严谨、更可执行、更贴合目标，不要回退：\n\n${raw}`
+    : `请优化以下提示词：\n\n${raw}`;
+  const body = {
+    model: cfg.cloudModel,
+    temperature: cfg.temperature,
+    stream: false,
+    messages: [
+      { role: "system", content: sys },
+      { role: "user", content: userContent },
+    ],
+  };
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + cfg.cloudKey,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    if (res.status === 401) throw new Error("API Key 无效或权限不足（401）");
+    if (res.status === 429) throw new Error("请求过于频繁或额度不足（429）");
+    throw new Error("云端返回 " + res.status + " " + t.slice(0, 120));
+  }
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() || "";
+}
+
+/* ---------- 增强主流程（云端单模式） ---------- */
+async function enhance(mode) {
+  const raw = $("raw").value.trim();
+  if (!raw) { setStatus("warn", "请先在左侧输入原始提示词。"); return; }
+  if (!cfg.cloudKey) { setStatus("warn", "请先在上方设置中填写 API Key。"); $("cloudKey").focus(); return; }
+
+  const btn = mode === "iterate" ? $("iterateBtn") : $("enhanceBtn");
+  const label = mode === "iterate" ? "🔁" : "🚀";
+  btn.disabled = true;
+  btn.innerHTML = label + ' <span class="spinner"></span>';
+  try {
+    const out = await callCloud(raw, mode);
+    if (!out) throw new Error("云端返回为空，请重试或检查模型设置。");
+    renderOut(out, cfg.cloudModel);
+    pushHistory(raw, out, cfg.cloudModel);
+    setStatus("ok", "增强完成（" + cfg.cloudModel + (mode === "iterate" ? " · 迭代" : "") + "）。");
+  } catch (e) {
+    setStatus("err", "增强失败：" + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = mode === "iterate" ? "🔁 迭代优化" : "🚀 一键增强";
+  }
+}
+
+/* ---------- 渲染 / 历史 / 复制 ---------- */
+function renderOut(text, mode) {
+  $("out").textContent = text;
+  $("outMode").textContent = mode;
+  $("outMeta").textContent = text.length + " 字";
+}
+function setStatus(type, msg) {
+  const el = $("status");
+  el.className = "status " + type;
+  el.textContent = msg;
+}
+function pushHistory(raw, out, model) {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch (_) {}
+  list.unshift({ t: Date.now(), raw, out, model });
+  list = list.slice(0, HISTORY_MAX);
+  localStorage.setItem(LS_KEY, JSON.stringify(list));
+  renderHistory();
+}
+function renderHistory() {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch (_) {}
+  const box = $("hlist");
+  if (!list.length) { box.innerHTML = '<span class="hint">暂无记录</span>'; return; }
+  box.innerHTML = list.map((h, i) => {
+    const d = new Date(h.t);
+    const ts = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const preview = (h.raw || "").replace(/\s+/g, " ").slice(0, 48);
+    return `<div class="hitem" data-i="${i}"><span class="t">${ts}</span><span class="s">${preview || "(空)"}</span><span class="x">${h.model}</span></div>`;
+  }).join("");
+  box.querySelectorAll(".hitem").forEach((el) => {
+    el.addEventListener("click", () => {
+      const h = list[+el.dataset.i];
+      $("raw").value = h.raw;
+      renderOut(h.out, h.model);
+      setStatus("ok", "已载入历史记录。");
+    });
+  });
+}
+async function copyOut() {
+  const text = $("out").textContent;
+  if (!text || text === "—") { setStatus("warn", "没有可复制的内容。"); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus("ok", "已复制到剪贴板。");
+  } catch (_) {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); document.body.removeChild(ta);
+    setStatus("ok", "已复制（兼容模式）。");
+  }
+}
+function exportMd() {
+  const text = $("out").textContent;
+  if (!text || text === "—") { setStatus("warn", "没有可导出的内容。"); return; }
+  const md = `# 提示词增强结果\n\n> 生成时间：${new Date().toLocaleString("zh-CN")}\n> 模型：${$("outMode").textContent}\n\n## 原始提示词\n\n${$("raw").value.trim()}\n\n## 增强后的提示词\n\n${text}\n`;
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "enhanced-prompt-" + Date.now() + ".md";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setStatus("ok", "已导出 Markdown 文件。");
+}
+
+/* ---------- 设置同步 ---------- */
+function syncStat() {
+  $("modelStat").textContent = cfg.cloudKey ? "已填 Key · " + (cfg.cloudModel || "未设模型") : "未填写 Key";
+}
+
+/* ---------- 事件绑定 ---------- */
+function bind() {
+  $("enhanceBtn").addEventListener("click", () => enhance("enhance"));
+  $("iterateBtn").addEventListener("click", () => enhance("iterate"));
+  $("copyBtn").addEventListener("click", copyOut);
+  $("copyBtn2").addEventListener("click", copyOut);
+  $("exportBtn").addEventListener("click", exportMd);
+  $("clearBtn").addEventListener("click", () => {
+    $("raw").value = ""; $("out").textContent = "—"; $("outMode").textContent = "等待"; $("outMeta").textContent = "";
+    setStatus("ok", "已清空。");
+  });
+  $("raw").addEventListener("input", () => { $("rawCount").textContent = $("raw").value.length + " 字"; });
+  $("cloudUrl").addEventListener("change", (e) => { cfg.cloudUrl = e.target.value.trim(); saveCfg(); });
+  $("cloudKey").addEventListener("input", (e) => { cfg.cloudKey = e.target.value.trim(); saveCfg(); syncStat(); });
+  $("cloudModel").addEventListener("change", (e) => { cfg.cloudModel = e.target.value.trim(); saveCfg(); syncStat(); });
+  $("temperature").addEventListener("input", (e) => { cfg.temperature = +e.target.value; $("tempVal").textContent = e.target.value; saveCfg(); });
+  $("style").addEventListener("change", (e) => { cfg.style = e.target.value; saveCfg(); });
+
+  // 回填已保存的设置到表单
+  $("cloudUrl").value = cfg.cloudUrl;
+  $("cloudKey").value = cfg.cloudKey;
+  $("cloudModel").value = cfg.cloudModel;
+  $("temperature").value = cfg.temperature;
+  $("tempVal").textContent = String(cfg.temperature);
+  $("style").value = cfg.style;
+  syncStat();
+  renderHistory();
+}
+
+bind();
+</script>
+</body>
+</html>
