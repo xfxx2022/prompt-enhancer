@@ -17,14 +17,21 @@
   })();
 </script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAAAIABzAgAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAAQAAAAEAgGAAAAH/P/YQAAAjpJREFUeJxNkz9v1EAQxX+zu177LgmJIqVAISmoDqWIRMfH4EPw4UKDkKhoKBEVICH6E5Eg/44E7iJivDNo1qcIW7ter8fv7bw3IycvT0xNwSCEAGbUF0CC+Fz3VK0ufRIRzKw+k6rWBWJI/VGxEPF4D3ZQj0GU4EQjXgXwRfJ/62VG8ZFacr+iKz0hRqwiCUPK3IZIduYRu16psjtYiAQrHJ++5+BmTnRWIkKDWUMJU+Y7+3x5+Bj/IvWGNLIrQ8w8/faBJz8+UdIUs1QD1AMt0nDH0ekclZbP+4e0RWvCwWeVQNevOPw5Z4gbqLOGRJGM0aKSKXQMYcr+1Q25FFcKM8Vld7lprBBcUOeVCL+WcDCDjT3kd49YBs2kIRMHF3N0I436jUKZCErEfPvoGfL8BbZYoK9fweWqnkY0V1fMQiVLblO5tyUh5h8TsviFXVzA+RUsC2YtlIwFT8v5RvHT6HFYWxnr8OPa9zPs7Ru4/gvXt9DswNBB6Egx0Y/OU1MIXlmet3QuTbWNjS04u4YyQZptKB2UFtWG4jKNjISavSq3ecLldI9mENTGQNMW0wYtHVZamruGi63In2ReuBUleaWZl7HBx0czuj6wu+xBm3EMLVIcLHG6m/g6m5Br+Xr/eCl7w7glqqzaCe9mx+wul+TBU3FtohcKfRNZbEevHIKrvm65VE9inrkQXRUJnG8/QGu33YtdY1LxdD3W9wPOnfwYI95/gV4o636pAO7wur1rrMHm5rSC/APcLSwRrPvfEwAAAABJRU5ErkJggg==">
 <script>
-  /* Vercel Web Analytics V2（官方 HTML 写法）
-   * 前提：Vercel Dashboard → Analytics → 已点击 Enable
-   * 启用后 Vercel 自动注入 /_vercel/insights/script.js 路由，无需安装 npm 包 */
+  /* Vercel Web Analytics V2
+   * 前提：Vercel Dashboard → Analytics → Enable 后，Vercel 会提供 /_vercel/insights/script.js。
+   * 动态注入并静默降级：非 Vercel 平台部署时加载失败不影响页面功能 */
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  (function () {
+    try {
+      var s = document.createElement("script");
+      s.src = "/_vercel/insights/script.js";
+      s.async = true;
+      s.onerror = function () {};
+      document.head.appendChild(s);
+    } catch (e) {}
+  })();
 </script>
-<script defer src="/_vercel/insights/script.js"></script>
 <style>
   :root{
     --bg:#ffffff; --bg-2:#f6f8fa; --bg-3:#eaeef2;
@@ -34,6 +41,9 @@
     --green:#1a7f37; --green-soft:#dafbe1;
     --amber:#9a6700; --amber-soft:#fff8c5;
     --red:#cf222e;
+    --ok-border:#aadfa8;
+    --err-bg:#ffebe9; --err-border:#ffc1ba;
+    --warn-border:#ecdca0;
     --radius:10px;
     --header-bg:#ffffff;
     --shadow:0 1px 3px rgba(0,0,0,.08);
@@ -46,6 +56,9 @@
     --green:#3fb950; --green-soft:#0f2417;
     --amber:#d29922; --amber-soft:#2a2410;
     --red:#f85149;
+    --ok-border:#1f5c33;
+    --err-bg:#3a1216; --err-border:#67252d;
+    --warn-border:#5a4300;
     --header-bg:#0d1117;
     --shadow:0 1px 3px rgba(0,0,0,.4);
   }
@@ -75,7 +88,7 @@
   .config summary{cursor:pointer; font-weight:600; user-select:none; list-style:none;}
   .config summary::-webkit-details-marker{display:none;}
   .config summary::before{content:"▸ "; color:var(--text-3);}
-  details[open] .config summary::before{content:"▾ ";}
+  .config[open] summary::before{content:"▾ ";}
   .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:12px;}
   .field{display:flex; flex-direction:column; gap:4px;}
   .field label{font-size:12px; color:var(--text-2);}
@@ -85,9 +98,9 @@
   .hint{font-size:12px; color:var(--text-3);}
   .hint code{background:var(--bg-3); padding:1px 5px; border-radius:4px; font-size:12px;}
   .status{font-size:12px; padding:6px 10px; border-radius:8px; display:none; margin-bottom:12px;}
-  .status.ok{display:block; background:var(--green-soft); color:var(--green); border:1px solid #aadfa8;}
-  .status.err{display:block; background:#ffebe9; color:var(--red); border:1px solid #ffc1ba;}
-  .status.warn{display:block; background:var(--amber-soft); color:var(--amber); border:1px solid #ecdca0;}
+  .status.ok{display:block; background:var(--green-soft); color:var(--green); border:1px solid var(--ok-border);}
+  .status.err{display:block; background:var(--err-bg); color:var(--red); border:1px solid var(--err-border);}
+  .status.warn{display:block; background:var(--amber-soft); color:var(--amber); border:1px solid var(--warn-border);}
   .cols{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   @media(max-width:860px){ .cols{grid-template-columns:1fr;} }
   .panel{background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; min-height:360px;}
@@ -133,8 +146,8 @@
     header .logo{font-size:14px;}
     .field input, .field select{font-size:16px;} /* 防止 iOS 聚焦缩放 */
   }
-  /* 适配刘海屏安全区 */
-  @media (env(safe-area-inset-bottom)){
+  /* 适配刘海屏安全区（env() 需用 @supports 判定；不支持的浏览器自动忽略整条规则） */
+  @supports (padding: env(safe-area-inset-bottom)) {
     .wrap{padding-bottom:calc(32px + env(safe-area-inset-bottom));}
   }
 
@@ -152,7 +165,7 @@
 <div class="wrap">
   <div class="toolbar">
     <button class="btn primary" id="enhanceBtn">🚀 一键增强</button>
-    <button class="btn" id="iterateBtn" title="基于当前增强版继续优化">🔁 迭代优化</button>
+    <button class="btn" id="iterateBtn" title="基于右侧当前增强结果继续优化（无结果时基于左侧输入）">🔁 迭代优化</button>
     <button class="btn" id="copyBtn">📋 复制结果</button>
     <button class="btn" id="exportBtn">💾 导出 Markdown</button>
     <button class="btn ghost" id="clearBtn">清空</button>
@@ -350,6 +363,8 @@ const META = {
 };
 
 /* ---------- 云端 API 调用（OpenAI 兼容） ---------- */
+const REQUEST_TIMEOUT_MS = 60000;
+
 async function callCloud(raw, mode) {
   if (!cfg.cloudKey) throw new Error("未填写 API Key（设置 → 云端 API）");
   const url = cfg.cloudUrl.replace(/\/+$/, "") + "/chat/completions";
@@ -366,44 +381,61 @@ async function callCloud(raw, mode) {
       { role: "user", content: userContent },
     ],
   };
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + cfg.cloudKey,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    if (res.status === 401) throw new Error("API Key 无效或权限不足（401）");
-    if (res.status === 429) throw new Error("请求过于频繁或额度不足（429）");
-    throw new Error("云端返回 " + res.status + " " + t.slice(0, 120));
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS) : null;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + cfg.cloudKey,
+      },
+      body: JSON.stringify(body),
+      signal: ctrl ? ctrl.signal : undefined,
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      if (res.status === 401) throw new Error("API Key 无效或权限不足（401）");
+      if (res.status === 429) throw new Error("请求过于频繁或额度不足（429）");
+      throw new Error("云端返回 " + res.status + " " + t.slice(0, 120));
+    }
+    let data;
+    try { data = await res.json(); }
+    catch (_) { throw new Error("云端返回了非 JSON 响应，请检查 Base URL 是否正确。"); }
+    return data?.choices?.[0]?.message?.content?.trim() || "";
+  } finally {
+    clearTimeout(timer);
   }
-  const data = await res.json();
-  return data?.choices?.[0]?.message?.content?.trim() || "";
 }
 
 /* ---------- 增强主流程（云端单模式） ---------- */
 async function enhance(mode) {
-  const raw = $("raw").value.trim();
-  if (!raw) { setStatus("warn", "请先在左侧输入原始提示词。"); return; }
+  const curOut = ($("out").textContent || "").trim();
+  /* 迭代模式优先基于右侧当前增强结果；无结果时退回左侧原始输入 */
+  const src = (mode === "iterate" && curOut && curOut !== "—" ? curOut : $("raw").value).trim();
+  if (!src) {
+    setStatus("warn", mode === "iterate"
+      ? "没有可迭代的内容：请先完成一次增强，或在左侧输入提示词。"
+      : "请先在左侧输入原始提示词。");
+    return;
+  }
   if (!cfg.cloudKey) { setStatus("warn", "请先在上方设置中填写 API Key。"); $("cloudKey").focus(); return; }
 
+  const btns = [$("enhanceBtn"), $("iterateBtn")];
   const btn = mode === "iterate" ? $("iterateBtn") : $("enhanceBtn");
   const label = mode === "iterate" ? "🔁" : "🚀";
-  btn.disabled = true;
+  btns.forEach((b) => { b.disabled = true; });
   btn.innerHTML = label + ' <span class="spinner"></span>';
   try {
-    const out = await callCloud(raw, mode);
+    const out = await callCloud(src, mode);
     if (!out) throw new Error("云端返回为空，请重试或检查模型设置。");
     renderOut(out, cfg.cloudModel);
-    pushHistory(raw, out, cfg.cloudModel);
+    pushHistory(src, out, cfg.cloudModel);
     setStatus("ok", "增强完成（" + cfg.cloudModel + (mode === "iterate" ? " · 迭代" : "") + "）。");
   } catch (e) {
-    setStatus("err", "增强失败：" + e.message);
+    setStatus("err", "增强失败：" + (e && e.name === "AbortError" ? "请求超时（60 秒）或已中止，请重试。" : e.message));
   } finally {
-    btn.disabled = false;
+    btns.forEach((b) => { b.disabled = false; });
     btn.innerHTML = mode === "iterate" ? "🔁 迭代优化" : "🚀 一键增强";
   }
 }
@@ -424,8 +456,13 @@ function pushHistory(raw, out, model) {
   try { list = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch (_) {}
   list.unshift({ t: Date.now(), raw, out, model });
   list = list.slice(0, HISTORY_MAX);
-  localStorage.setItem(LS_KEY, JSON.stringify(list));
-  renderHistory();
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(list));
+    renderHistory();
+  } catch (_) {
+    /* 存储配额不足等情况：不影响本次增强结果展示 */
+    setStatus("warn", "历史记录保存失败（浏览器存储空间不足），本次结果未入历史。");
+  }
 }
 function renderHistory() {
   let list = [];
@@ -507,21 +544,27 @@ function bind() {
     setStatus("ok", "已清空。");
   });
   $("raw").addEventListener("input", () => { $("rawCount").textContent = $("raw").value.length + " 字"; });
-  $("cloudUrl").addEventListener("change", (e) => { cfg.cloudUrl = e.target.value.trim(); saveCfg(); });
+  $("cloudUrl").addEventListener("change", (e) => { cfg.cloudUrl = e.target.value.trim(); cfg.preset = ""; saveCfg(); syncStat(); });
   $("cloudKey").addEventListener("input", (e) => { cfg.cloudKey = e.target.value.trim(); saveCfg(); syncStat(); });
-  $("cloudModel").addEventListener("change", (e) => { cfg.cloudModel = e.target.value.trim(); saveCfg(); syncStat(); });
+  $("cloudModel").addEventListener("change", (e) => { cfg.cloudModel = e.target.value.trim(); cfg.preset = ""; saveCfg(); syncStat(); });
   $("temperature").addEventListener("input", (e) => { cfg.temperature = +e.target.value; $("tempVal").textContent = e.target.value; saveCfg(); });
   $("style").addEventListener("change", (e) => { cfg.style = e.target.value; saveCfg(); });
   $("preset").addEventListener("change", (e) => {
     const p = PRESETS[e.target.value];
-    if (!p) return;
+    if (!p) { cfg.preset = ""; saveCfg(); return; }
+    cfg.preset = e.target.value;
     cfg.cloudUrl = p.url; cfg.cloudModel = p.model;
     $("cloudUrl").value = p.url; $("cloudModel").value = p.model;
     saveCfg(); syncStat();
     setStatus("ok", "已套用预设：" + e.target.selectedOptions[0].text + "（请填写 API Key）。");
   });
 
-  // 回填已保存的设置到表单
+  // 回填已保存的设置到表单（含旧数据兼容校验）
+  if (!META[cfg.style]) cfg.style = "general";
+  if (!cfg.cloudUrl) cfg.cloudUrl = "https://api.deepseek.com/v1";
+  if (!cfg.cloudModel) cfg.cloudModel = "deepseek-chat";
+  if (typeof cfg.temperature !== "number" || Number.isNaN(cfg.temperature)) cfg.temperature = 0.3;
+  $("preset").value = cfg.preset && PRESETS[cfg.preset] ? cfg.preset : "";
   $("cloudUrl").value = cfg.cloudUrl;
   $("cloudKey").value = cfg.cloudKey;
   $("cloudModel").value = cfg.cloudModel;
