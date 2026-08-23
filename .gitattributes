@@ -1,0 +1,8 @@
+# 统一换行符，消除 Windows/Linux/macOS 间的不一致噪音
+# 文本文件统一以 CRLF 检出（匹配 Windows 本机 autocrlf=true 习惯）
+* text=auto eol=crlf
+
+# 明确二进制文件，不转换
+*.ico binary
+*.png binary
+*.svg text
